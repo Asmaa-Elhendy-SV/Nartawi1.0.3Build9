@@ -1,0 +1,271 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:intl/intl.dart';
+import 'package:newwwwwwww/features/Delivery_Man/orders/presentation/widgets/custome_button.dart';
+import 'package:newwwwwwww/features/Delivery_Man/orders/presentation/widgets/customer_card_information.dart';
+import 'package:newwwwwwww/features/home/presentation/widgets/main_screen_widgets/suppliers/build_info_button.dart';
+import 'package:newwwwwwww/features/orders/domain/models/order_model.dart';
+import 'package:newwwwwwww/features/orders/presentation/widgets/delivery_information_report.dart';
+import 'package:newwwwwwww/features/orders/presentation/widgets/order_summary_card.dart';
+import 'package:newwwwwwww/features/orders/presentation/widgets/payment_information_report.dart';
+import 'package:newwwwwwww/features/orders/presentation/widgets/reason_for_cancelation.dart';
+import 'package:newwwwwwww/features/orders/presentation/widgets/seller_information_widget.dart';
+import '../../../../core/theme/colors.dart';
+import '../../../Delivery_Man/orders/presentation/screens/track_order.dart';
+import '../../../home/presentation/widgets/background_home_Appbar.dart';
+import '../../../home/presentation/widgets/build_ForegroundAppBarHome.dart';
+import '../widgets/order_card.dart';
+import '../widgets/order_status_widget.dart';
+import '../widgets/payement_status_widget.dart';
+import '../widgets/review_alert_dialog.dart';
+
+String formatOrderDate(DateTime? date) {
+  if (date == null) return '';
+
+  final datePart = DateFormat('MMMM d, y').format(date);
+  final timePart = DateFormat('hh:mm a').format(date);
+
+  return '$datePart at $timePart';
+}
+
+class OrderDetailScreen extends StatefulWidget {
+  String orderStatus;
+  String paymentStatus;
+  ClientOrder clientOrder;
+  bool fromDeliveryMan;
+
+  OrderDetailScreen({
+    required this.orderStatus,
+    required this.paymentStatus,
+    required this.clientOrder,
+    this.fromDeliveryMan = false,
+  });
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    _tabController = TabController(length: 4, vsync: this);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  String? imageUrl = null;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      // 🔥 يخلي الجسم يبدأ من أعلى الشاشة خلف الـ AppBar
+      backgroundColor: Colors.transparent,
+      // في حالة الصورة في الخلفية
+      body: Stack(
+        children: [
+          Container(
+            width: screenWidth,
+            height: screenHeight,
+            color: AppColors.backgrounHome,
+          ),
+          buildBackgroundAppbar(screenWidth),
+          BuildForegroundappbarhome(fromDeliveryMan: widget.fromDeliveryMan,
+            screenHeight: screenHeight,
+            screenWidth: screenWidth,
+            title: 'Order Detail',
+            is_returned: true,
+          ),
+          Positioned.fill(
+            top: MediaQuery.of(context).padding.top + screenHeight * .1,
+            bottom: screenHeight * .05,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: screenHeight * .03, //04 handle design shimaa
+                bottom: screenHeight * .1,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * .06,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+
+                                  children: [
+                                    Text(
+                                      'Order #${widget.clientOrder.id ?? 0}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: screenWidth * .045,
+                                      ),
+                                    ),
+                                    BuildOrderStatus(
+                                      screenHeight,
+                                      screenWidth,
+                                      widget.orderStatus,
+                                      fromOrderDetail: false,
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: screenHeight * .01),
+                                Row(
+                                  children: [
+                                    SvgPicture.asset(
+                                      "assets/images/orders/calendar.svg",
+                                      width: screenWidth * .042,
+                                      color: AppColors.textLight,
+                                    ),
+                                    SizedBox(width: screenWidth * .02),
+
+                                    // ✅ التاريخ ياخد المساحة المتاحة فقط
+                                    Expanded(
+                                      child: Text(
+                                        formatOrderDate(
+                                          widget.clientOrder.issueTime,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: screenWidth * .034,
+                                        ),
+                                      ),
+                                    ),
+
+                                    if (widget.fromDeliveryMan) ...[
+                                      // SizedBox(width: screenWidth * .02),
+                                      BuildPaymentStatus(
+                                        screenWidth,
+                                        screenHeight,
+                                        widget.paymentStatus,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: screenHeight * .01), //k
+                            widget.fromDeliveryMan
+                                ? CustomerCardInformation(
+                                    screenWidth,
+                                    screenHeight,
+                                    widget.clientOrder,
+                                  )
+                                : SizedBox(),
+                            OrderSummaryCard(
+                              screenWidth,
+                              screenHeight,
+                              widget.clientOrder,
+                              fromDeliveryMan: widget.fromDeliveryMan,
+                            ),
+                            widget.fromDeliveryMan
+                                ? widget.orderStatus == 'Pending' ||
+                                          widget.orderStatus == 'On The Way'
+                                      ? Padding(
+                                        padding:  EdgeInsets.symmetric(vertical: screenHeight*.02),
+                                        child: GestureDetector(
+                                          onTap: (){
+                                            Navigator.push(context, MaterialPageRoute(builder: (context)=>TrackOrderScreen()));
+                                          },
+                                          child: CustomGradientButton(
+                                            widget.orderStatus ==
+                                                 'On The Way'?
+                                            'assets/images/delivery_man/orders/package-delivered.svg':
+                                            'assets/images/delivery_man/orders/delivery-tracking.svg',
+                                              screenWidth * .015,
+                                              widget.orderStatus == 'Pending'
+                                                  ? 'Start Delivery'
+                                                  : 'Mark As Delivered',
+                                              screenWidth,
+                                              screenHeight,
+                                            ),
+                                        ),
+                                      )
+                                      : SizedBox()
+                                : SizedBox(),
+                            widget.fromDeliveryMan
+                                ? SizedBox()
+                                : Column(
+                                    children: [
+                                      OrderDeliveryCard(
+                                        screenWidth,
+                                        screenHeight,
+                                        widget.clientOrder,
+                                      ),
+                                      OrderPaymentCard(
+                                        screenWidth,
+                                        screenHeight,
+                                        widget.paymentStatus,
+                                        widget.clientOrder,
+                                      ),
+                                      OrderSellerInformationCard(
+                                        screenWidth,
+                                        screenHeight,
+                                        widget.clientOrder,
+                                      ),
+                                      widget.orderStatus == 'Delivered'
+                                          ? BuildInfoAndAddToCartButton(
+                                              screenWidth,
+                                              screenHeight,
+                                              'Leave Review',
+                                              false,
+                                              () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (ctx) =>
+                                                      ReviewAlertDialog(),
+                                                );
+                                              },
+                                              fromOrderDetail: true,
+                                            )
+                                          : widget.orderStatus == 'Canceled'
+                                          ? ReasonForCancellationCard(
+                                              screenWidth,
+                                              screenHeight,
+                                            )
+                                          : SizedBox(),
+                                      SizedBox(height: screenHeight * .04),
+                                    ],
+                                  ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
